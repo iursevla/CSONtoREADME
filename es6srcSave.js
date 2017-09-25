@@ -54,14 +54,14 @@ class CLI {
         let fileAndFolders = this._getFolderContent(this.folderPath); //fse.readdirSync(this.folderPath);
         if (fileAndFolders.indexOf(BOOSTNOTE_JSON) !== -1 && fileAndFolders.indexOf(NOTES_FOLDER) !== -1) { //boostnote.json and notes folder exist
             this.createFolder(); //distFolder
-            // let boostNoteFolders = [];
-            let boostNoteFolderKeysMap = new Map();
+            let boostNoteFolders = [];
+            let boostNoteKeysMap = new Map();
             let jsonFile = JSON.parse(fse.readFileSync(this.jsonPath, 'utf8'));
-            for (let boostFolder of jsonFile.folders) {
-                // boostNoteFolders.push(new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
-                boostNoteFolderKeysMap.set(boostFolder.key, new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
+            for (let boostFolder of jsonFile.folders){
+                boostNoteFolders.push(new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
+                boostNoteKeysMap.set(boostFolder.key, new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
             }
-            this.processBoostNoteFolders(boostNoteFolderKeysMap);
+            this.processBoostNoteFolders(boostNoteFolders);
         }
         else {
             let error = `Boostnote main file named: ${BOOSTNOTE_JSON} wasn't found on folder: ${this.folderPath}`;
@@ -71,11 +71,11 @@ class CLI {
 
     /**
      * Process each boost note folder and create the files that 
-     * @param {Map<string, BoostNoteFolder>} boostNoteFolderKeysMap - the boost note folders.
+     * @param {Array<BoostNoteFolder>} boostNoteFolders - the boost note folders.
      * @memberof CLI
      */
-    processBoostNoteFolders(boostNoteFolderKeysMap) {
-        console.log(boostNoteFolderKeysMap);
+    processBoostNoteFolders(boostNoteFolders) {
+        console.log(boostNoteFolders);
         let csonFileNames = this._getCSONFiles(); //this._getFolderContent(this.notesPath).filter((f) => f.includes(CSON_FORMAT));
         for (let csonFileName of csonFileNames) {
             let fileContent = fse.readFileSync(this.notesPath + '/' + csonFileName, 'utf8');
@@ -85,20 +85,14 @@ class CLI {
                 if (cson.content) {
                     console.log(cson.title);
                     let boostNotefile = new BoostNoteFile(cson.folder, cson.type, cson.title, cson.content)
-                    boostNoteFolderKeysMap.get(cson.folder).addFile(boostNotefile);
+                    
+                    
                 } else
                     console.log(`${csonFileName} has no content, so it was ignored...`);
             }
             else if (cson.type === SNIPPET_NOTE) {
                 console.log("----   SNIPPET_NOTE     ---");
                 console.log('snippet note found but ignored...');
-            }
-        }
-        console.log(boostNoteFolderKeysMap);
-        for (let k of boostNoteFolderKeysMap.values()) {
-            console.log("Folder name:", k.folderName, ",files:");
-            for (let f of k.files) {
-                console.log(f.fileTitle);
             }
         }
     }
