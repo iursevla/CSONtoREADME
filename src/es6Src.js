@@ -1,12 +1,14 @@
-const fse = require('fs-extra'); //Filesystem https://www.npmjs.com/package/fs-extra
-const CSON = require('cson'); //CSON https://www.npmjs.com/package/cson + https://github.com/bevry/cson
-const sanitize = require("sanitize-filename"); //https://www.npmjs.com/package/sanitize-filename
+const fse = require('fs-extra'); //https://github.com/jprichardson/node-fs-extra
+const CSON = require('cson'); //https://github.com/bevry/cson
+const markdownpdf = require('markdown-pdf') //https://github.com/alanshaw/markdown-pdf
+const sanitize = require('sanitize-filename'); //https://github.com/parshap/node-sanitize-filename
 
 const BOOSTNOTE_JSON = 'boostnote.json'; //Constant for .json file
 const NOTES_FOLDER = 'notes'; //Constant for notes folder
 const DIST_FOLDER = 'dist'; //Constant for dist folder
 const CSON_FORMAT = '.cson'; //CSON file
 const MD_FORMAT = '.md';
+const PDF_FORMAT = '.pdf';
 const MARKDOWN_NOTE = 'MARKDOWN_NOTE';
 const SNIPPET_NOTE = 'SNIPPET_NOTE';
 
@@ -119,6 +121,7 @@ class CLI {
                 for (let f of boostNoteFolder.files) {
                     let filePath = this.distPath + '/' + folderName + '/' + this.validName(f.fileTitle);
                     this.createREADMEFile(filePath, f.fileContentJSON);
+                    this.createPDFFile(filePath, f.fileContentJSON);
                 }
             }
         }
@@ -147,7 +150,7 @@ class CLI {
     }
 
     /**
-     * Creates a .md file with the given content.
+     * Creates a MARKDOWN file with the given content.
      * @param {string} filePath - The file path.
      * @param {string} mdContent - The content to write to the file.
      * @memberof CLI
@@ -156,6 +159,19 @@ class CLI {
         filePath += MD_FORMAT;
         fse.writeFileSync(filePath, mdContent);
     }
+
+    /**
+     * Creates a PDF file with the given content.
+     * @param {string} filePath - The file path.
+     * @param {string} mdContent - The content to write to the file.
+     * @memberof CLI
+     */
+    createPDFFile(filePath, mdContent) {
+        filePath += PDF_FORMAT;
+        markdownpdf().from.string(mdContent).to(filePath, () => { console.log("Created pdf file"); })
+        // fse.writeFileSync(filePath, mdContent);
+    }
+
 
     /**
      * Returns the cson files from the notes folder. If there's any file inside the notes folder that isn't a cson file
