@@ -1,0 +1,28 @@
+{
+  "name": "csontoreadme",
+  "version": "1.0.0",
+  "description": "Convert CSON folders and files to README.md.",
+  "main": "src/convert.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iursevla/CSONToReadme.git"
+  },
+  "keywords": [
+    "README",
+    "CSON",
+    "JSON"
+  ],
+  "author": "Rui Alves",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/iursevla/CSONToReadme/issues"
+  },
+  "homepage": "https://github.com/iursevla/CSONToReadme#readme",
+  "dependencies": {
+    "cson": "^4.1.0",
+    "fs-extra": "^4.0.2"
+  }
+}
