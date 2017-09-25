@@ -1,10 +1,12 @@
-let fse = require('fs-extra'); //Filesystem https://www.npmjs.com/package/fs-extra
-let CSON = require('cson'); //CSON https://www.npmjs.com/package/cson + https://github.com/bevry/cson
+const fse = require('fs-extra'); //Filesystem https://www.npmjs.com/package/fs-extra
+const CSON = require('cson'); //CSON https://www.npmjs.com/package/cson + https://github.com/bevry/cson
+const sanitize = require("sanitize-filename"); //https://www.npmjs.com/package/sanitize-filename
 
 const BOOSTNOTE_JSON = 'boostnote.json'; //Constant for .json file
 const NOTES_FOLDER = 'notes'; //Constant for notes folder
 const DIST_FOLDER = 'dist'; //Constant for dist folder
 const CSON_FORMAT = '.cson'; //CSON file
+const MD_FORMAT = '.md';
 const MARKDOWN_NOTE = 'MARKDOWN_NOTE';
 const SNIPPET_NOTE = 'SNIPPET_NOTE';
 
@@ -14,6 +16,9 @@ class BoostNoteFolder {
         this.folderKey = folderKey;
         this.folderName = folderName;
         this.folderPath = folderPath;
+        /**
+         * @type {Array<BoostNoteFile>}
+         */
         this.files = [];
     }
 
@@ -54,13 +59,10 @@ class CLI {
         let fileAndFolders = this._getFolderContent(this.folderPath); //fse.readdirSync(this.folderPath);
         if (fileAndFolders.indexOf(BOOSTNOTE_JSON) !== -1 && fileAndFolders.indexOf(NOTES_FOLDER) !== -1) { //boostnote.json and notes folder exist
             this.createFolder(); //distFolder
-            // let boostNoteFolders = [];
             let boostNoteFolderKeysMap = new Map();
             let jsonFile = JSON.parse(fse.readFileSync(this.jsonPath, 'utf8'));
-            for (let boostFolder of jsonFile.folders) {
-                // boostNoteFolders.push(new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
+            for (let boostFolder of jsonFile.folders)
                 boostNoteFolderKeysMap.set(boostFolder.key, new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
-            }
             this.processBoostNoteFolders(boostNoteFolderKeysMap);
         }
         else {
@@ -70,41 +72,66 @@ class CLI {
     }
 
     /**
-     * Process each boost note folder and create the files that 
-     * @param {Map<string, BoostNoteFolder>} boostNoteFolderKeysMap - the boost note folders.
+     * Process each boost note folder and associate add it's BoostNoteFiles.
+     * @param {Map<string, BoostNoteFolder>} boostNoteFolderKeysMap - Each key (folder key) points to a BoostNoteFolder.
      * @memberof CLI
      */
     processBoostNoteFolders(boostNoteFolderKeysMap) {
-        console.log(boostNoteFolderKeysMap);
+        // console.log(boostNoteFolderKeysMap);
         let csonFileNames = this._getCSONFiles(); //this._getFolderContent(this.notesPath).filter((f) => f.includes(CSON_FORMAT));
         for (let csonFileName of csonFileNames) {
             let fileContent = fse.readFileSync(this.notesPath + '/' + csonFileName, 'utf8');
             let cson = CSON.parse(fileContent);
             if (cson.type === MARKDOWN_NOTE) {
-                console.log("----   MARKDOWN_NOTE    ---");
+                // console.log("----   MARKDOWN_NOTE    ---");
                 if (cson.content) {
-                    console.log(cson.title);
+                    // console.log(cson.title);
                     let boostNotefile = new BoostNoteFile(cson.folder, cson.type, cson.title, cson.content)
                     boostNoteFolderKeysMap.get(cson.folder).addFile(boostNotefile);
                 } else
                     console.log(`${csonFileName} has no content, so it was ignored...`);
             }
             else if (cson.type === SNIPPET_NOTE) {
-                console.log("----   SNIPPET_NOTE     ---");
-                console.log('snippet note found but ignored...');
+                // console.log("----   SNIPPET_NOTE     ---, ignored for now...");
             }
         }
-        console.log(boostNoteFolderKeysMap);
-        for (let k of boostNoteFolderKeysMap.values()) {
-            console.log("Folder name:", k.folderName, ",files:");
-            for (let f of k.files) {
-                console.log(f.fileTitle);
+        // console.log(boostNoteFolderKeysMap);
+        this.processBoostNoteFiles(boostNoteFolderKeysMap.values());
+    }
+
+    /**
+     * Creates all folders and respective files with .md format.
+     * @param {Array<BoostNoteFolder>} boostNoteFolders - The boost note folders with it's files.
+     * @memberof CLI
+     */
+    processBoostNoteFiles(boostNoteFolders) {
+        for (let boostNoteFolder of boostNoteFolders) {
+            if (boostNoteFolder.files.length === 0)
+                console.log(`Folder with name: ${boostNoteFolder.folderName} has no files, so it was ignored.`);
+            else {
+                let folderName = this.validName(boostNoteFolder.folderName); //Should validate filename
+                this.createFolder(folderName);
+                console.log("Folder name:", boostNoteFolder.folderName, "was created. It has the following files:");
+                for (let f of boostNoteFolder.files) {
+                    console.log(f.fileTitle);
+                }
+
+                for (let f of boostNoteFolder.files) {
+                    let filePath = this.distPath + '/' + folderName + '/' + this.validName(f.fileTitle);
+                    this.createREADMEFile(filePath, f.fileContentJSON);
+                }
             }
         }
     }
 
-    _findBoostNoteFolder() {
-
+    /**
+     * A name is valid if it does not contain any invalid char or more than one dot.
+     * @param {string} name - The name of the file or folder. 
+     * @returns {boolean} - true, if the given name is valid, false, otherwise.
+     * @memberof CLI
+     */
+    validName(name) {
+        return sanitize(name);
     }
 
     /**
@@ -114,9 +141,20 @@ class CLI {
      */
     createFolder(folderName = '') {
         let folderPath = this.distPath + '/' + folderName;
-        console.log(folderPath);
+        // console.log(folderPath);
         fse.ensureDirSync(folderPath); // Create if not exists
         fse.emptyDirSync(folderPath); // Empty content if it did
+    }
+
+    /**
+     * Creates a .md file with the given content.
+     * @param {string} filePath - The file path.
+     * @param {string} mdContent - The content to write to the file.
+     * @memberof CLI
+     */
+    createREADMEFile(filePath, mdContent) {
+        filePath += MD_FORMAT;
+        fse.writeFileSync(filePath, mdContent);
     }
 
     /**

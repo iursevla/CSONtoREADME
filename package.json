@@ -23,6 +23,7 @@
   "homepage": "https://github.com/iursevla/CSONToReadme#readme",
   "dependencies": {
     "cson": "^4.1.0",
-    "fs-extra": "^4.0.2"
+    "fs-extra": "^4.0.2",
+    "sanitize-filename": "^1.6.1"
   }
 }
