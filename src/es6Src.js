@@ -13,29 +13,30 @@ const MARKDOWN_NOTE = 'MARKDOWN_NOTE';
 const SNIPPET_NOTE = 'SNIPPET_NOTE';
 
 //Represents a boostnote folder http://prntscr.com/gpkl5t
-class BoostNoteFolder {
+class BoostnoteFolder {
     constructor(folderKey, folderName, folderPath) {
         this.folderKey = folderKey;
         this.folderName = folderName;
         this.folderPath = folderPath;
-        /**
-         * @type {Array<BoostNoteFile>}
-         */
-        this.files = [];
+        this.notes = [];
     }
 
-    addFile(boostNoteFile) {
-        this.files.push(boostNoteFile);
+    addNote(boostnoteNote) {
+        this.notes.push(boostnoteNote);
     }
 }
 
-//Represents a boostnote file http://prntscr.com/gpkleu
-class BoostNoteFile {
-    constructor(folderKey, fileType, fileTitle, fileContentJSON) {
+/**
+         * @type {Array<BoostnoteNote>}
+         */
+
+//Represents a boostnote Note http://prntscr.com/gpkleu
+class BoostnoteNote {
+    constructor(folderKey, noteType, noteTitle, noteContent) {
         this.folderKey = folderKey;
-        this.fileType = fileType;
-        this.fileTitle = fileTitle;
-        this.fileContentJSON = fileContentJSON;
+        this.noteType = noteType;
+        this.noteTitle = noteTitle;
+        this.noteContent = noteContent;
     }
 }
 
@@ -45,7 +46,7 @@ class CLI {
         // console.log(process.argv, args);
         let folderPath = args[0];
         if (!folderPath)
-            throw 'No folder given';
+            throw 'No boostnote folder given';
         this.folderPath = folderPath;
         this.jsonPath = folderPath + '/' + BOOSTNOTE_JSON; //The boostnote.json file
         this.notesPath = folderPath + '/' + NOTES_FOLDER; //The path for the notes folder
@@ -64,7 +65,7 @@ class CLI {
             let boostNoteFolderKeysMap = new Map();
             let jsonFile = JSON.parse(fse.readFileSync(this.jsonPath, 'utf8'));
             for (let boostFolder of jsonFile.folders)
-                boostNoteFolderKeysMap.set(boostFolder.key, new BoostNoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
+                boostNoteFolderKeysMap.set(boostFolder.key, new BoostnoteFolder(boostFolder.key, boostFolder.name, this.distPath + boostFolder.name));
             this.processBoostNoteFolders(boostNoteFolderKeysMap);
         }
         else {
@@ -75,7 +76,7 @@ class CLI {
 
     /**
      * Process each boost note folder and associate add it's BoostNoteFiles.
-     * @param {Map<string, BoostNoteFolder>} boostNoteFolderKeysMap - Each key (folder key) points to a BoostNoteFolder.
+     * @param {Map<string, BoostnoteFolder>} boostNoteFolderKeysMap - Each key (folder key) points to a BoostNoteFolder.
      * @memberof CLI
      */
     processBoostNoteFolders(boostNoteFolderKeysMap) {
@@ -88,8 +89,8 @@ class CLI {
                 // console.log("----   MARKDOWN_NOTE    ---");
                 if (cson.content) {
                     // console.log(cson.title);
-                    let boostNotefile = new BoostNoteFile(cson.folder, cson.type, cson.title, cson.content)
-                    boostNoteFolderKeysMap.get(cson.folder).addFile(boostNotefile);
+                    let boostNotefile = new BoostnoteNote(cson.folder, cson.type, cson.title, cson.content)
+                    boostNoteFolderKeysMap.get(cson.folder).addNote(boostNotefile);
                 } else
                     console.log(`${csonFileName} has no content, so it was ignored...`);
             }
@@ -103,25 +104,25 @@ class CLI {
 
     /**
      * Creates all folders and respective files with .md format.
-     * @param {Array<BoostNoteFolder>} boostNoteFolders - The boost note folders with it's files.
+     * @param {Array<BoostnoteFolder>} boostNoteFolders - The boost note folders with it's files.
      * @memberof CLI
      */
     processBoostNoteFiles(boostNoteFolders) {
         for (let boostNoteFolder of boostNoteFolders) {
-            if (boostNoteFolder.files.length === 0)
+            if (boostNoteFolder.notes.length === 0)
                 console.log(`Folder with name: ${boostNoteFolder.folderName} has no files, so it was ignored.`);
             else {
                 let folderName = this.validName(boostNoteFolder.folderName); //Should validate filename
                 this.createFolder(folderName);
                 console.log("Folder name:", boostNoteFolder.folderName, "was created. It has the following files:");
-                for (let f of boostNoteFolder.files) {
-                    console.log(f.fileTitle);
+                for (let f of boostNoteFolder.notes) {
+                    console.log(f.noteTitle);
                 }
 
-                for (let f of boostNoteFolder.files) {
-                    let filePath = this.distPath + '/' + folderName + '/' + this.validName(f.fileTitle);
-                    this.createREADMEFile(filePath, f.fileContentJSON);
-                    this.createPDFFile(filePath, f.fileContentJSON);
+                for (let f of boostNoteFolder.notes) {
+                    let filePath = this.distPath + '/' + folderName + '/' + this.validName(f.noteTitle);
+                    this.createREADMEFile(filePath, f.noteContent);
+                    this.createPDFFile(filePath, f.noteContent);
                 }
             }
         }
@@ -168,7 +169,7 @@ class CLI {
      */
     createPDFFile(filePath, mdContent) {
         filePath += PDF_FORMAT;
-        markdownpdf().from.string(mdContent).to(filePath, () => { console.log("Created pdf file"); })
+        markdownpdf({highlightCssPath: '../css/highlight.css'}).from.string(mdContent).to(filePath, () => { console.log("Created pdf file"); })
         // fse.writeFileSync(filePath, mdContent);
     }
 
