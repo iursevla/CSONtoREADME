@@ -25,6 +25,7 @@
     "cson": "^4.1.0",
     "fs-extra": "^4.0.2",
     "markdown-pdf": "^8.0.0",
-    "sanitize-filename": "^1.6.1"
+    "sanitize-filename": "^1.6.1",
+    "showdown": "^1.7.4"
   }
 }

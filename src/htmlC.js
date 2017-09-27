@@ -2,6 +2,7 @@ const fse = require('fs-extra'); //https://github.com/jprichardson/node-fs-extra
 const CSON = require('cson'); //https://github.com/bevry/cson
 const markdownpdf = require('markdown-pdf') //https://github.com/alanshaw/markdown-pdf
 const sanitize = require('sanitize-filename'); //https://github.com/parshap/node-sanitize-filename
+const showdown = require('showdown'); // https://github.com/showdownjs/showdown
 
 const BOOSTNOTE_JSON = 'boostnote.json'; //Constant for boostnote.json file
 const NOTES_FOLDER = 'notes'; //Constant for notes folder
@@ -123,6 +124,7 @@ class CLI {
                     let filePath = this.distPath + '/' + folderName + '/' + this.validName(f.noteTitle);
                     this.createREADMEFile(filePath, f.noteContent);
                     this.createPDFFile(filePath, f.noteContent);
+                    this.createHTMLFile(filePath, f.noteContent);
                 }
             }
         }
@@ -172,6 +174,23 @@ class CLI {
         markdownpdf({ highlightCssPath: '../css/highlight.css' }).from.string(mdContent).to(filePath, () => { console.log("Created pdf file"); })
         // fse.writeFileSync(filePath, mdContent);
     }
+
+    /**
+  * Creates a HTML file with the given content.
+  * @param {string} filePath - The file path.
+  * @param {string} mdContent - The content to write to the file.
+  * @memberof CLI
+  */
+    createHTMLFile(filePath, mdContent) {
+        filePath += HTML_FORMAT;
+        let converter = new showdown.Converter();
+        converter.makeHtml(mdContent);
+        converter.setFlavor('vanilla');
+        fse.writeFileSync(filePath, converter.makeHtml(mdContent));
+
+        // markdownpdf({ highlightCssPath: '../css/highlight.css' }).from.string(mdContent).to(filePath, () => { console.log("Created pdf file"); })
+    }
+
 
     /**
      * Returns the cson files from the notes folder. If there's any file inside the notes folder that isn't a cson file
